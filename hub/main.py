@@ -25,4 +25,4 @@ def get_screens():
     return jsonify(screens)
 
 if __name__ == '__main__':
-    app.run(port=port)
+    app.run(host='0.0.0.0', port=port)
