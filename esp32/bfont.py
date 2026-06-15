@@ -4,11 +4,10 @@ class BinaryFont:
     def __init__(self, path):
         self._f = open(path, 'rb')
         self._f.read(4)
-        self._height, self._bpr, num = struct.unpack('<HHI', self._f.read(8))
+        self._height, self._bpr, self._num = struct.unpack('<HHI', self._f.read(8))
         self._entry_size = 1 + self._height * self._bpr
-        self._index = bytearray(self._f.read(num * 4))
-        self._num = num
-        self._data_start = 12 + num * 4
+        self._index_start = 12
+        self._data_start = 12 + self._num * 4
 
     def height(self):
         return self._height
@@ -17,7 +16,8 @@ class BinaryFont:
         lo, hi = 0, self._num - 1
         while lo <= hi:
             mid = (lo + hi) // 2
-            c = struct.unpack_from('<I', self._index, mid * 4)[0]
+            self._f.seek(self._index_start + mid * 4)
+            c = struct.unpack('<I', self._f.read(4))[0]
             if c == cp:
                 return mid
             elif c < cp:
