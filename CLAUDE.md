@@ -70,13 +70,19 @@ JSONフォーマット（`hub/data/<サービス名>.json`）：
 ```
 raspi-esp32-status-panel/
 ├── esp32/
-│   ├── main.py        ← 起動・画面切り替え・レイヤー制御
-│   ├── display.py     ← OLED描画
-│   └── screens/       ← 画面ごとにファイルを分ける
-│       └── vrchat.py
-└── hub/
-    ├── main.py        ← HTTPサーバー（data/以下を読んで返す）
-    └── data/          ← 各サービスがJSONを書き込む場所
+│   ├── main.py           ← 起動・画面切り替え・レイヤー制御
+│   ├── display.py        ← OLED描画
+│   ├── bfont.py          ← バイナリフォントリーダー
+│   ├── jpfont.bin        ← 日本語ビットマップフォント（ESP32にアップロード）
+│   └── config.py.example ← WiFi・ハブURL設定のサンプル
+├── hub/
+│   ├── main.py           ← HTTPサーバー（data/以下を読んで返す）
+│   ├── requirements.txt  ← Python依存パッケージ
+│   └── data/             ← 各サービスがJSONを書き込む場所
+├── systemd/
+│   └── raspi-hub.service.example ← systemdサービスファイルのテンプレート
+└── tools/
+    └── font_convert.py   ← jpfont.bin を再生成するスクリプト
 ```
 
 ## ハブ API
@@ -114,6 +120,4 @@ GET /screens
 ## 未決定の設計事項
 
 - Raspberry Pi 側 OLED に何を表示するか
-- ESP32 が切り替える画面の種類・内容（最初はVRChatの1画面）
-- スライドスイッチのレイヤー切り替えの具体的な閾値
 - BME280 の取得値をどちら側でどう扱うか
