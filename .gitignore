@@ -6,3 +6,6 @@ venv/
 
 # Hub runtime data
 hub/data/*.json
+
+# ESP32 config (contains WiFi credentials)
+esp32/config.py
