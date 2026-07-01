@@ -9,24 +9,37 @@ TACT_PIN = 13
 SLIDE_PIN = 14
 LAYER_SIZE = 5
 DEBOUNCE_MS = 200
+WIFI_TIMEOUT_MS = 15000
 
 screens = []
 current_index = 0
 _tact_flag = False
 _last_tact_ms = 0
 
-def connect_wifi(ssid, password):
+def connect_wifi(oled, ssid, password):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
+    if wlan.isconnected():
+        return wlan
     wlan.connect(ssid, password)
+    start = time.ticks_ms()
     while not wlan.isconnected():
-        pass
+        if time.ticks_diff(time.ticks_ms(), start) > WIFI_TIMEOUT_MS:
+            display.show(oled, ["WiFi NG", "status: " + str(wlan.status()), ssid[:16], "retrying..."])
+            time.sleep(2)
+            wlan.connect(ssid, password)
+            start = time.ticks_ms()
+        time.sleep_ms(200)
+    return wlan
 
 def fetch_data(url):
-    res = urequests.get(url)
-    data = res.json()
-    res.close()
-    return data
+    res = None
+    try:
+        res = urequests.get(url)
+        return res.json()
+    finally:
+        if res is not None:
+            res.close()
 
 def _on_tact(pin):
     global _tact_flag, _last_tact_ms
@@ -45,7 +58,7 @@ def main():
 
     oled = display.init()
     display.show(oled, ["Connecting...", "", "", ""])
-    connect_wifi(config.WIFI_SSID, config.WIFI_PASSWORD)
+    wlan = connect_wifi(oled, config.WIFI_SSID, config.WIFI_PASSWORD)
 
     try:
         screens = fetch_data(config.HUB_URL)
@@ -80,12 +93,17 @@ def main():
 
         if time.ticks_diff(now, last_fetch_ms) >= poll_ms:
             last_fetch_ms = now
-            try:
-                screens = fetch_data(config.HUB_URL)
+            if not wlan.isconnected():
+                display.show(oled, ["WiFi lost", "reconnecting...", "", ""])
+                wlan = connect_wifi(oled, config.WIFI_SSID, config.WIFI_PASSWORD)
                 changed = True
-            except Exception as e:
-                display.show(oled, ["Error", str(e)[:20], "", ""])
-                changed = False
+            else:
+                try:
+                    screens = fetch_data(config.HUB_URL)
+                    changed = True
+                except Exception as e:
+                    display.show(oled, ["Error", str(e)[:20], "", ""])
+                    changed = False
 
         if changed and screens:
             idx = min(current_index, len(screens) - 1)
